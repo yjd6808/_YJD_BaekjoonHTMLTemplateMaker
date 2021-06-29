@@ -30,9 +30,9 @@
                     <Button x:Name="Button_PasteHtml" Content="HTML 붙여넣기" Click="Button_PasteHtml_Click"></Button>
                     <Button x:Name="Button_CopyHtml" Content="HTML 복사" Margin="0, 5, 0, 0" Click="Button_CopyHtml_Click"></Button>
                     <Button x:Name="Button_SaveFormat" Content="HTML 포맷 저장" Margin="0, 5, 0, 0" Click="Button_SaveFormat_Click"></Button>
-                    <Button x:Name="Button_Empty" Content="Clear Clipboard" Margin="0, 5, 0, 0" Click="Button_Empty_OnClick"></Button>
-                    <Button x:Name="Button_PrintFormats" Content="Print Formats" Margin="0, 5, 0, 0" Click="Button_PrintFormats_OnClick"></Button>
-                    <Button x:Name="Button_Test" Content="Remove Specific Format" Margin="0, 5, 0, 0" Click="Button_Test_OnClick"></Button>
+                    <Button x:Name="Button_Empty" Content="클립보드 비우기" Margin="0, 5, 0, 0" Click="Button_Empty_OnClick"></Button>
+                    <Button x:Name="Button_PrintFormats" Content="클립보드 포맷 출력" Margin="0, 5, 0, 0" Click="Button_PrintFormats_OnClick"></Button>
+                    <Button x:Name="Button_OpenChromeWithFormat" Content="크롬열어서 확인" Margin="0, 5, 0, 0" Click="Button_OpenChromeWithFormat_OnClick"></Button>
                 </StackPanel>
             </Grid>
 

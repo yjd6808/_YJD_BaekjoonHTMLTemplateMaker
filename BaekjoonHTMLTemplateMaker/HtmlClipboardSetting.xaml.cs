@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +24,7 @@ using DataFormats = System.Windows.DataFormats;
 using DataObject = System.Windows.DataObject;
 using IDataObject = System.Windows.IDataObject;
 using MessageBox = System.Windows.MessageBox;
+using Path = System.IO.Path;
 using TextDataFormat = System.Windows.TextDataFormat;
 
 namespace BaekjoonHTMLTemplateMaker
@@ -56,8 +59,23 @@ namespace BaekjoonHTMLTemplateMaker
         }
 
         private void Button_PasteHtml_Click(object sender, RoutedEventArgs e)
-        {
-            TextEditor_Text.Text = Clipboard.GetText(TextDataFormat.Html);
+        { 
+            var clipboardHtmlString = Clipboard.GetText(TextDataFormat.Html);
+
+            if (clipboardHtmlString.Length <= 50)
+            {
+                MessageBox.Show("복사된 HTML 포맷 클립보드 데이터가 존재하지 않습니다.");
+                return;
+            }
+
+            try
+            {
+                TextEditor_Text.Text = ClipboardHelper.GetHtml(clipboardHtmlString);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show("클립보드 HTML 포맷 붙여넣기 실패");
+            }
         }
 
         private void Button_CopyHtml_Click(object sender, RoutedEventArgs e)
@@ -72,43 +90,33 @@ namespace BaekjoonHTMLTemplateMaker
                 MessageBox.Show("복사 성공");
                 _clipboardHtmlFormatData = tempClipboardFormatText;
             }
-                
         }
 
         private void Button_SaveFormat_Click(object sender, RoutedEventArgs e)
         {
-            if (_clipboardHtmlFormatData.Equals(String.Empty))
-            {
-                MessageBox.Show("먼저 클립보드 복사를 해주세요.");
-                return;
-            }
-
-            File.WriteAllText(_cliboardHtmlFormatFile, _clipboardHtmlFormatData);
-            MessageBox.Show("저장완료");
+            //백업
+            File.WriteAllText($"clipboard-format/백업-{DateTime.Now.ToString("yyyy-MM-dd")}.chtml", File.ReadAllText(_cliboardHtmlFormatFile));
+            File.WriteAllText(_cliboardHtmlFormatFile, TextEditor_Text.Text);
+            
+            MessageBox.Show("기존 포맷 백업 및 저장완료");
             _clipboardHtmlFormatData = string.Empty;
         }
 
-        
-
         private void Button_Test_OnClick(object sender, RoutedEventArgs e)
         {
-            IDataObject obj = Clipboard.GetDataObject();
-
-            var dataObject = new DataObject();
-
-            string html = obj.GetData(DataFormats.Html) as string;
-
-           
-
-            dataObject.SetData(DataFormats.Html, html);
-            //dataObject.SetData(DataFormats.Text, obj.GetData(DataFormats.Text));
-            //dataObject.SetData(DataFormats.UnicodeText, obj.GetData(DataFormats.UnicodeText));
-            //dataObject.SetData(DataFormats.StringFormat, obj.GetData(DataFormats.StringFormat));
-            //dataObject.SetData(DataFormats.Locale, obj.GetData(DataFormats.Locale));
-            //dataObject.SetData(DataFormats.OemText, obj.GetData(DataFormats.OemText));
-
-
-            Clipboard.SetDataObject(dataObject);
+            // [ 특정 클립보드 삭제 ]
+            // IDataObject obj = Clipboard.GetDataObject();
+               
+            // var dataObject = new DataObject();
+               
+            // string html = obj.GetData(DataFormats.Html) as string;
+            // dataObject.SetData(DataFormats.Html, html);
+            // dataObject.SetData(DataFormats.Text, obj.GetData(DataFormats.Text));
+            // dataObject.SetData(DataFormats.UnicodeText, obj.GetData(DataFormats.UnicodeText));
+            // dataObject.SetData(DataFormats.StringFormat, obj.GetData(DataFormats.StringFormat));
+            // dataObject.SetData(DataFormats.Locale, obj.GetData(DataFormats.Locale));
+            // dataObject.SetData(DataFormats.OemText, obj.GetData(DataFormats.OemText));
+            // Clipboard.SetDataObject(dataObject);
         }
 
         private void Button_Empty_OnClick(object sender, RoutedEventArgs e)
@@ -127,6 +135,36 @@ namespace BaekjoonHTMLTemplateMaker
             });
 
             TextEditor_Test.Text = info;
+        }
+
+        private void Button_OpenChromeWithFormat_OnClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string tempFile = Path.GetTempFileName() + ".html";
+                File.WriteAllText(tempFile, TextEditor_Text.Text);
+                Process.Start(tempFile);
+                Task.Run(() =>
+                {
+                    Thread.Sleep(1000);
+
+                    try
+                    {
+                        //딱히 삭제 실패해도 상관없다.
+                        File.Delete(tempFile);
+                    }
+                    catch (Exception eee)
+                    {
+                    }
+                    
+                });
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(exception.Message + "\n\n" + exception.StackTrace);
+            }
+            
+
         }
     }
 }

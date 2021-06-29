@@ -170,6 +170,8 @@ namespace BaekjoonHTMLTemplateMaker
         private const string _exportsPath = "exports";
         private const string _backjoonDomCralerFileName = "baekjoon-dom-crawler.exe";
         private const string _cliboardHtmlFormatFile = "clipboard-format/naver-smart-editor.chtml";
+        private List<string> _problemNumberList = new List<string>();
+        private bool _problemLoadedEnd = false;
         private string _sourceUrl = "";
 
         public MainWindow()
@@ -178,6 +180,7 @@ namespace BaekjoonHTMLTemplateMaker
             ReloadBaekjoonProblems();
             ListView_Log.Items.Clear();
             TextEditor_Text.TextArea.Margin = new Thickness(5);
+            
         }
         private void MainWindow_OnClosing(object sender, CancelEventArgs e)
         {
@@ -268,29 +271,26 @@ namespace BaekjoonHTMLTemplateMaker
                 if (!Directory.Exists(_exportsPath))
                     Directory.CreateDirectory(_exportsPath);
 
+                WriteLog("저장된 백준 문제를 로딩중입니다.");
+                _problemLoadedEnd = false;
+                _problemNumberList.Clear();
                 ListView_BaekjoonProblems.Items.Clear();
 
-                List<Task> tasks = new List<Task>();
-
-                foreach (string filePath in Directory.GetFiles(_exportsPath))
+                Task.Run(() =>
                 {
-                    if (string.Equals(Path.GetExtension(filePath), ".json", StringComparison.OrdinalIgnoreCase))
-                    {
-                        tasks.Add(Task.Run(() =>
-                        {
-                            BaekjoonProblem tag = BaekjoonProblem.Parse(File.ReadAllText(filePath));
-                            string content = Path.GetFileNameWithoutExtension(filePath) + " : " + tag.Title;
-
-                            this.Dispatcher.BeginInvoke((Action) delegate
-                            {
-                                ListViewItem item = CreateListViewProblemItem(content, tag);
-                                ListView_BaekjoonProblems.Items.Add(item);
-                            });
-                        }));
-                    }
-                }
-
-                Task.WaitAll(tasks.ToArray());
+                    _problemNumberList = Directory.GetFiles(_exportsPath)
+                        .Where(x => string.Equals(Path.GetExtension(x), ".json", StringComparison.OrdinalIgnoreCase))
+                        .Select(Path.GetFileNameWithoutExtension)
+                        .ToList();
+                })
+                .GetAwaiter()
+                .OnCompleted(() =>
+                {
+                    _problemLoadedEnd = true;
+                    UpdateProblemListView();
+                    WriteLog("백준 문제 로딩이 완료되었습니다.");
+                });
+                
             }
             catch (Exception e)
             {
@@ -303,6 +303,18 @@ namespace BaekjoonHTMLTemplateMaker
             if (!File.Exists(_backjoonDomCralerFileName))
             {
                 MessageBox.Show($"{_backjoonDomCralerFileName} 파일이 존재하지 않습니다.");
+                return;
+            }
+
+            if (TextBox_StartNumber.Text.Length <= 0)
+            {
+                MessageBox.Show("시작 숫자를 입력해주세요.");
+                return;
+            }
+
+            if (TextBox_EndNunber.Text.Length <= 0)
+            {
+                MessageBox.Show("마지막 숫자를 입력해주세요.");
                 return;
             }
 
@@ -523,6 +535,48 @@ namespace BaekjoonHTMLTemplateMaker
             //ClipboardHelper.CopyToClipboard(decodedContent, _sourceUrl);
             //TextEditor_Text.Text = Clipboard.GetText(TextDataFormat.Html);
             //WriteLog("클립보드 복사 성공");
+        }
+
+        private void UpdateProblemListView()
+        {
+            List<Task> tasks = new List<Task>();
+            List<string> searchedProblemList = new List<string>();
+
+            ListView_BaekjoonProblems.Items.Clear();
+            if (TextBox_SearchProblem.Text.Length == 0)
+                searchedProblemList = _problemNumberList;
+            else
+            {
+                searchedProblemList = _problemNumberList
+                    .Where(x => x.Contains(TextBox_SearchProblem.Text))
+                    .ToList();
+            }
+
+            for (int i = 0; i < (searchedProblemList.Count >= 100 ? 100 : searchedProblemList.Count); i++)
+            {
+                string problemNumber = searchedProblemList[i];
+                string fileName = Path.Combine(_exportsPath, problemNumber + ".json");
+
+                tasks.Add(Task.Run(() =>
+                {
+                    BaekjoonProblem tag = BaekjoonProblem.Parse(File.ReadAllText(fileName));
+                    string content = problemNumber + " : " + tag.Title;
+
+                    this.Dispatcher.BeginInvoke((Action)delegate
+                    {
+                        ListViewItem item = CreateListViewProblemItem(content, tag);
+                        ListView_BaekjoonProblems.Items.Add(item);
+                    });
+                }));
+            }
+
+            Task.WaitAll(tasks.ToArray());
+
+        }
+
+        private void TextBox_SearchProblem_OnTextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdateProblemListView();
         }
     }
 }
